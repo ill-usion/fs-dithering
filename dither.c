@@ -98,8 +98,8 @@ void fs_dither_rgb(uint8_t* img, int w, int h, const struct palette_t* palette) 
     const int N = 3;
     struct rgb_t* pix, *next, new, err, temp;
 
-    for (int y = 0; y < h - 2; y++) {
-        for (int x = 0; x < w - 2; x++) {
+    for (int y = 0; y < h - 1; y++) {
+        for (int x = 0; x < w - 1; x++) {
             pix = (struct rgb_t*)(img + xy2idx(x, y, w, N));
             fs_find_closest_color(pix, palette->ptr, palette->len, &new);
             rgb_diff(pix, &new, &err); 
