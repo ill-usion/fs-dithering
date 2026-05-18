@@ -18,6 +18,7 @@ void rgb_diff(struct rgb_t* lcol, struct rgb_t* rcol, struct rgb_t* dest_col);
 void rgb_add(struct rgb_t* lcol, struct rgb_t* rcol, struct rgb_t* dest_col);
 void fs_find_closest_color(struct rgb_t* col, const struct rgb_t* palette, const size_t palette_len, struct rgb_t* dest_col);
 void fs_dither_rgb(uint8_t* img, int w, int h, const struct palette_t* palette);
+void write_img_to_header(uint8_t* img, int w, int h, int n);
 
 int main(int argc, char** argv) {
     argument_parser_t parser;
@@ -38,9 +39,15 @@ int main(int argc, char** argv) {
         'l', "--list-palettes", &list_palettes, "list all available color palettes"
     );
 
+    bool produce_c_bytes;
+    argparse_arg_t arg4 = ARGPARSE_TOGGLE(
+        'b', "--produce-c-bytes", &produce_c_bytes, "write image bytes to a C header"
+    );
+
     argparse_add_argument(&parser, &arg1);
     argparse_add_argument(&parser, &arg2);
     argparse_add_argument(&parser, &arg3);
+    argparse_add_argument(&parser, &arg4);
     argparse_parse_args(&parser);
 
     if (list_palettes) {
@@ -72,7 +79,10 @@ int main(int argc, char** argv) {
     const struct palette_t palette = PALETTES_MAP[palette_idx];
     fs_dither_rgb(img, x, y, &palette);
 
-    stbi_write_jpg("output.jpg", x, y, n, img, 100);
+    if (!produce_c_bytes)
+        stbi_write_jpg("output.jpg", x, y, n, img, 100);
+    else
+        write_img_to_header(img, x, y, n);
 
     stbi_image_free(img);
     return 0;
@@ -156,4 +166,26 @@ void fs_dither_rgb(uint8_t* img, int w, int h, const struct palette_t* palette) 
             }
         }
     }
+}
+
+void write_img_to_header(uint8_t* img, int w, int h, int n) {
+    FILE* fout = fopen("image.h", "w");
+    if (!fout) {
+        perror("failed to open image.h for writing");
+        return;
+    }
+    
+    const char* HEADER = "#ifndef IMAGE_H\n#define IMAGE_H\n";
+    fprintf(fout, "%s", HEADER);
+    fprintf(fout, "const int IMG_LEN = %d;\nconst int IMG_H = %d;\nconst int IMG_W = %d;\nconst int IMG_N = %d;\n", w * h * n, w, h, n);
+    fprintf(fout, "const unsigned char IMAGE[] = {\n\t");
+
+    for (int i = 0, c = 1; i < w * h * n; i++, c++) {
+        fprintf(fout, "0x%02X, ", img[i]);
+        if (c % 9 == 0) fprintf(fout, "\n\t");
+    }
+    fprintf(fout, "};\n");
+    fprintf(fout, "#endif\n");
+
+    fclose(fout);
 }
