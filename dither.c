@@ -3,6 +3,8 @@
 #include <math.h>
 #include <float.h>
 #include "palettes.h"
+#define STB_ARGPARSE_IMPLEMENTATION
+#include "stb_argparse.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -18,13 +20,30 @@ void fs_find_closest_color(struct rgb_t* col, const struct rgb_t* palette, const
 void fs_dither_rgb(uint8_t* img, int w, int h, const struct palette_t* palette);
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        printf("%s [filename] [palette=0] [--list-palettes]\n", argv[0]);
-        return 1;
-    }
+    argument_parser_t parser;
+    argparse_init(&parser, argc, argv, "Floyd-Steinberg dithering", NULL);
 
-    const char* fn = argv[1];
-    if (!strcmp(fn, "--list-palettes")) {
+    const char* fn;
+    argparse_arg_t arg1 = ARGPARSE_POSITIONAL(
+        STRING, "--file", &fn, "input file name"
+    );
+
+    uint32_t palette_idx = 0;
+    argparse_arg_t arg2 = ARGPARSE_OPTION(
+        INT, 'p', "--palette", &palette_idx, "color palette"
+    );
+
+    bool list_palettes;
+    argparse_arg_t arg3 = ARGPARSE_TOGGLE(
+        'l', "--list-palettes", &list_palettes, "list all available color palettes"
+    );
+
+    argparse_add_argument(&parser, &arg1);
+    argparse_add_argument(&parser, &arg2);
+    argparse_add_argument(&parser, &arg3);
+    argparse_parse_args(&parser);
+
+    if (list_palettes) {
         printf("Available color palettes:\n");
         for (int i = 0; i < PALETTES_LEN; i++) {
             printf("\t- %d %s\n", i, PALETTES_MAP[i].name);
@@ -32,10 +51,15 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    if (palette_idx > PALETTES_LEN - 1) {
+        printf("Invalid color palette\n");
+        return 1;
+    }
+
     int x, y, n;
     uint8_t* img = stbi_load(fn, &x, &y, &n, 0);
     if (!img) {
-        printf("Invalid image\n");
+        printf("Input a valid image path\n");
         return 1;
     }
 
@@ -45,7 +69,7 @@ int main(int argc, char** argv) {
     }
 
     printf("x=%d, y=%d, n=%d\n", x, y, n);
-    const struct palette_t palette = PALETTES_MAP[0];
+    const struct palette_t palette = PALETTES_MAP[palette_idx];
     fs_dither_rgb(img, x, y, &palette);
 
     stbi_write_jpg("output.jpg", x, y, n, img, 100);
