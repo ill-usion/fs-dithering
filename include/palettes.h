@@ -32,11 +32,24 @@ static const struct rgb_t VGA16[] = {
     { 255, 255, 255 }  // 15 white
 };
 
-
-static const struct palette_t PALETTES_MAP[] = {
-    { VGA16, 16, "VGA16"},
+static const struct rgb_t BINARY[] = {
+    {0, 0, 0},
+    {255, 255, 255}
 };
 
-const size_t PALETTES_LEN = 1;
+static const struct rgb_t GREYSCALE4[] = {
+    {0, 0, 0},
+    {64, 64, 64},
+    {128, 128, 128},
+    {255, 255, 255}
+};
+
+static const struct palette_t PALETTES_MAP[] = {
+    { VGA16, 16, "VGA16" },
+    { BINARY, 2, "BINARY" },
+    { GREYSCALE4, 4, "GREYSCALE 4" },
+};
+
+const size_t PALETTES_LEN = 3;
 
 #endif
