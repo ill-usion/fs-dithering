@@ -122,8 +122,8 @@ void fs_dither_rgb(uint8_t* img, int w, int h, const struct palette_t* palette) 
     const int N = 3;
     struct rgb_t* pix, *next, new, err, temp;
 
-    for (int y = 0; y < h - 1; y++) {
-        for (int x = 0; x < w - 1; x++) {
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
             pix = (struct rgb_t*)(img + xy2idx(x, y, w, N));
             fs_find_closest_color(pix, palette->ptr, palette->len, &new);
             rgb_diff(pix, &new, &err); 
@@ -131,21 +131,29 @@ void fs_dither_rgb(uint8_t* img, int w, int h, const struct palette_t* palette) 
             pix->g = new.g;
             pix->b = new.b;
             
-            next = (struct rgb_t*)(img + xy2idx(x + 1, y, w, N));
-            rgb_mul(&err, 7.0f / 16.0f, &temp);
-            rgb_add(next, &temp, next);
+            if (x + 1 <= w - 1) {
+                next = (struct rgb_t*)(img + xy2idx(x + 1, y, w, N));
+                rgb_mul(&err, 7.0f / 16.0f, &temp);
+                rgb_add(next, &temp, next);
+            }
 
-            next = (struct rgb_t*)(img + xy2idx(x - 1, y + 1, w, N));
-            rgb_mul(&err, 3.0f / 16.0f, &temp);
-            rgb_add(next, &temp, next);
+            if ((y + 1 <= h - 1) && (x - 1 <= w - 1)) {
+                next = (struct rgb_t*)(img + xy2idx(x - 1, y + 1, w, N));
+                rgb_mul(&err, 3.0f / 16.0f, &temp);
+                rgb_add(next, &temp, next);
+            }
 
-            next = (struct rgb_t*)(img + xy2idx(x, y + 1, w, N));
-            rgb_mul(&err, 5.0f / 16.0f, &temp);
-            rgb_add(next, &temp, next);
+            if (y + 1 <= h - 1) {
+                next = (struct rgb_t*)(img + xy2idx(x, y + 1, w, N));
+                rgb_mul(&err, 5.0f / 16.0f, &temp);
+                rgb_add(next, &temp, next);
+            }
 
-            next = (struct rgb_t*)(img + xy2idx(x + 1, y + 1, w, N));
-            rgb_mul(&err, 1.0f / 16.0f, &temp);
-            rgb_add(next, &temp, next);
+            if ((x + 1 <= w - 1) && (y + 1 <= h - 1)) {
+                next = (struct rgb_t*)(img + xy2idx(x + 1, y + 1, w, N));
+                rgb_mul(&err, 1.0f / 16.0f, &temp);
+                rgb_add(next, &temp, next);
+            }
         }
     }
 }
